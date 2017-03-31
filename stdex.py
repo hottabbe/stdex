@@ -130,10 +130,12 @@ def updater(filename, path):
     if float(version.read()) != float(requests.get(path + '/' + ver).text):
         print('ВЕРСИЯ УСТАРЕЛА, ОБНОВЛЯЮ......', color=1, clr=True)
         new = open(filename, 'w+', encoding='utf-8')
-        new.write(requests.get(path + '/' + filename).text).close()
+        new.write(requests.get(path + '/' + filename).text)
+        new.close()
         version.close()
         version = open(ver, 'w+')
-        version.write(requests.get(path + '/' + ver).text).close()
+        version.write(requests.get(path + '/' + ver).text)
+        version.close()
         if sys.platform == 'win32':
             os.system('%s/%s' % (os.getcwd(), filename))
         else:
