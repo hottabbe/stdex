@@ -18,7 +18,7 @@ except ImportError:
 printer = print
 inputer = input
 
-version = 1.53
+version = 1.6
 colors = ['\033[91m', '\033[92m', '\033[97m', '\033[94m', '\033[96m', '\033[93m', '\033[95m', '\033[90m', '\033[90m',
           '\033[99m']
 
