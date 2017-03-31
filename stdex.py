@@ -123,18 +123,21 @@ def input(last='', mask=string.ascii_letters + string.digits + string.punctuatio
 
 def updater(filename, path):
     ver = '%s_version' % filename
+    last = 0
     try:
         version = open(ver, 'r+')
         vers = float(version.read())
     except:
         vers = 0
+        last = 1
         print('ТЕКУЩАЯ ВЕРСИЯ НЕ УКАЗАНА/ФОРМАТ НЕ ВЕРЕН!!!!\nЗАГРУЗКА ПОСЛЕДНЕЙ ВЕРСИИ.....', color=0, clr=True)
     if vers != float(requests.get(path + '/' + ver).text):
         print('ВЕРСИЯ УСТАРЕЛА, ОБНОВЛЯЮ......', color=1, clr=True)
         new = open(filename, 'w+', encoding='utf-8')
         new.write(requests.get(path + '/' + filename).text)
         new.close()
-        version.close()
+        if last == 0:
+            version.close()
         version = open(ver, 'w+')
         version.write(requests.get(path + '/' + ver).text)
         version.close()
