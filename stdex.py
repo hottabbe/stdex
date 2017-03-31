@@ -125,9 +125,11 @@ def updater(filename, path):
     ver = '%s_version' % filename
     try:
         version = open(ver, 'r+')
+        vers = float(version.read())
     except:
+        vers = 0
         print('ТЕКУЩАЯ ВЕРСИЯ НЕ УКАЗАНА/ФОРМАТ НЕ ВЕРЕН!!!!\nЗАГРУЗКА ПОСЛЕДНЕЙ ВЕРСИИ.....', color=0, clr=True)
-    if float(version.read()) != float(requests.get(path + '/' + ver).text):
+    if vers != float(requests.get(path + '/' + ver).text):
         print('ВЕРСИЯ УСТАРЕЛА, ОБНОВЛЯЮ......', color=1, clr=True)
         new = open(filename, 'w+', encoding='utf-8')
         new.write(requests.get(path + '/' + filename).text)
