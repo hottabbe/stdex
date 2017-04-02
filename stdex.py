@@ -18,7 +18,7 @@ except ImportError:
 printer = print
 inputer = input
 
-version = 1.6
+version = 1.7
 colors = ['\033[91m', '\033[92m', '\033[97m', '\033[94m', '\033[96m', '\033[93m', '\033[95m', '\033[90m', '\033[90m',
           '\033[99m']
 
@@ -41,6 +41,8 @@ def readcfg(file_name):
     try:
         lines = open(file_name, 'r+')
     except:
+        file = open(file_name,'w+')
+        file.close()
         return {}
     for line in lines:
         line = line.split('<>')
@@ -118,7 +120,7 @@ def input(last='', mask=string.ascii_letters + string.digits + string.punctuatio
             print(last + '*' * len(string), False, color)
         elif hide == 2:
             print(last, False, color)
-    return string
+    return string.split('\n')[0]
 
 
 def updater(filename, path):
@@ -147,3 +149,14 @@ def updater(filename, path):
             os.system('python3 %s/%s' % (os.getcwd(), '123.py'))
     else:
         print('ИСПОЛЬЗУЕТСЯ АКТУАЛЬНАЯ ВЕРСИЯ', 1)
+
+
+def editcfg(file_name):
+    lines = readcfg(file_name)
+    print('Сейчас введите новые значения для ключей %s\nИли --- для того,чтобы оставить старое значение' % file_name)
+    for every in lines:
+        enter = input('Введите значение %s : ' % every)
+        if enter != '---':
+            lines[every] = enter
+    writecfg(file_name,lines)
+    print('Успешно перезаписано : %s !!!' % file_name,color = 1)
