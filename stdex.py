@@ -1,6 +1,8 @@
 import os
 import string
 import sys
+import base64
+import json
 
 import requests
 
@@ -17,10 +19,11 @@ except ImportError:
 
 printer = print
 inputer = input
-
-version = 1.71
-colors = ['\033[91m', '\033[92m', '\033[97m', '\033[94m', '\033[96m', '\033[93m', '\033[95m', '\033[90m', '\033[90m',
-          '\033[99m']
+head = requests.utils.default_headers()
+head['User-Agent'] = 'HOTTABBE API'
+version = 2
+colors = ['\033[31m', '\033[32m', '\033[37m', '\033[34m', '\033[36m', '\033[33m', '\033[35m', '\033[30m', '\033[30m',
+          '\033[39m']
 
 
 # colors = Red,Green,White,Blue,Cyan,Yellow,Magenta,Grey,Black,Default
@@ -37,34 +40,43 @@ def hot_api():
 
 
 def readcfg(file_name):
-    settings = {}
-    try:
-        lines = open(file_name, 'r+')
-    except:
-        file = open(file_name,'w+')
-        file.close()
-        return {}
-    for line in lines:
-        line = line.split('<>')
-        line[1] = line[1].split('\n')[0]
-        settings.update({line[0]: line[1]})
-    lines.close()
-    return settings
+    with open(file_name, encoding='utf-8') as code:
+        try:
+            code = json.load(code)
+        except:
+            input('Формат конфига не верен!!!!! \nЧтение невозможно\n')
+    if code['version'] == '1.0':
+        code_ = code['content']
+        for i in range(16):
+            code_ = base64.b64decode(code_).decode('utf-8')
+        return json.loads(code_)
 
 
-def writecfg(file_name, library, check=True):
-    if check:
-        lines = readcfg(file_name)
-        for every in lines:
+def writecfg(file_name, content):
+    with open(file_name, 'r+', encoding='utf-8') as file:
+        file_ = file.read()
+        if len(file_) != 0:
             try:
-                library[every]
-            except KeyError:
-                library[every] = lines[every]
-    file = open(file_name, 'w+', encoding='utf-8')
-    for every in library:
-        file.write('%s<>%s\n' % (every, library[every]))
-    file.close()
-    return True
+                keys = json.loads(file_)
+            except json.decoder.JSONDecodeError:
+                keys = {}
+            if 'content' in keys and 'version' in keys and keys['version'] == '1.0':
+                keys_ = keys['content']
+                for i in range(16):
+                    keys_ = base64.b64decode(keys_)
+                    keys_ = keys_.decode('utf-8')
+                keys = json.loads(keys_)
+                for every in content:
+                    keys[every] = content[every]
+            else:
+                keys = content
+        else:
+            keys = content
+        for i in range(16):
+            keys = base64.b64encode(bytes(json.dumps(keys),'utf-8')).decode('utf-8')
+    with open(file_name, 'w', encoding='utf-8') as file:
+        file.write(json.dumps({'version': '1.0', 'content': keys}))
+
 
 
 def print(string, is_new=True, color=9, clr=False, start=True, frame=False):
@@ -82,12 +94,12 @@ def print(string, is_new=True, color=9, clr=False, start=True, frame=False):
         string = header
         is_new = True
     if is_new:
-        sys.stdout.write('%s\n%s' % (colors[color], string))
+        sys.stdout.write('%s\n%s\x1b[0m' % (colors[color], string))
     else:
         if start:
-            sys.stdout.write('%s\r%s\r%s' % (colors[color], ' ' * 90, string))
+            sys.stdout.write('%s\r%s\r%s\x1b[0m' % (colors[color], ' ' * 70, string))
         else:
-            sys.stdout.write('%s%s' % (colors[color], string))
+            sys.stdout.write('%s%s\x1b[0m' % (colors[color], string))
     return string
 
 
@@ -95,68 +107,121 @@ def inputos():
     return msvcrt.getch()
 
 
-def input(last='', mask=string.ascii_letters + string.digits + string.punctuation + string.whitespace, color=9, hide=0):
-    _mask_ = set()
-    for every in mask:
-        _mask_.add(ord(every))
-    mask = _mask_
-    string = ''
-    print(last, True, color, False)
-    last = last.split('\n')
-    last = last[len(last) - 1]
-    ch = 'q'
-    while ord(ch) != 10:
-        try:
-            ch = msvcrt.getch()
-        except OverflowError:
-            ch = chr(1)
-        if ord(ch) in mask:
-            string += ch
-        elif ord(ch) == 127:
-            string = string[0:len(string) - 1]
-        if hide == 0:
-            print(last + string, False, color)
-        elif hide == 1:
-            print(last + '*' * len(string), False, color)
-        elif hide == 2:
-            print(last, False, color)
-    return string.split('\n')[0]
-
-
-def updater(filename, path):
-    ver = '%s_version' % filename
-    last = 0
-    try:
-        version = open(ver, 'r+')
-        vers = float(version.read())
-    except:
-        vers = 0
-        last = 1
-        print('ТЕКУЩАЯ ВЕРСИЯ НЕ УКАЗАНА/ФОРМАТ НЕ ВЕРЕН!!!!\nЗАГРУЗКА ПОСЛЕДНЕЙ ВЕРСИИ.....', color=0, clr=True)
-    if vers != float(requests.get(path + '/' + ver).text):
-        print('ВЕРСИЯ УСТАРЕЛА, ОБНОВЛЯЮ......', color=1, clr=True)
-        new = open(filename, 'w+', encoding='utf-8')
-        new.write(requests.get(path + '/' + filename).text)
-        new.close()
-        if last == 0:
-            version.close()
-        version = open(ver, 'w+')
-        version.write(requests.get(path + '/' + ver).text)
-        version.close()
-        if sys.platform == 'win32':
-            os.system('%s/%s' % (os.getcwd(), filename))
+def input(last='', mask=string.ascii_letters + string.digits + string.punctuation + string.whitespace, color=9, hide=0,
+          null=False):
+    if sys.platform != 'win32':
+        _mask_ = set()
+        for every in mask:
+            _mask_.add(ord(every))
+        mask = _mask_
+        string = ''
+        print(last, True, color, False)
+        last = last.split('\n')
+        last = last[len(last) - 1]
+        ch = 'q'
+        while ord(ch) != 10:
+            try:
+                ch = msvcrt.getch()
+            except OverflowError:
+                ch = chr(1)
+            if ord(ch) in mask:
+                string += ch
+            elif ord(ch) == 127:
+                string = string[0:len(string) - 1]
+            if hide == 0:
+                print(last + string, False, color)
+            elif hide == 1:
+                print(last + '*' * len(string), False, color)
+            elif hide == 2:
+                print(last, False, color)
+        if null == False and len(string) < 1:
+            return '0'
         else:
-            os.system('python3 %s/%s' % (os.getcwd(), '123.py'))
+            return string.split('\n')[0]
+    else:
+        while True:
+            string = inputer(last)
+            if not null:
+                if len(string) > 0:
+                    return string
+                else:
+                    print('Строка пустая,введите заново')
+            else:
+                return string
+
+
+def updater(filename, path, params, launch='', rewrite=False):
+    r = requests.post('%s/updater.php' % path, params)
+    if rewrite:
+        filename = launch
+    if r.text != 'updated':
+        print('ЗАГРУЗКА НОВОЙ ВЕРСИИ СКРИПТА......', color=1, clr=True)
+        file = open(filename, 'w+', encoding='utf-8')
+        file.write(r.text)
+        file.close()
+        if sys.platform == 'win32':
+            os.system('%s/%s' % (os.getcwd(), launch))
+        else:
+            os.system('python3 %s/%s' % (os.getcwd(), launch))
     else:
         print('ИСПОЛЬЗУЕТСЯ АКТУАЛЬНАЯ ВЕРСИЯ', 1)
 
 
+def formatter(values, length, delim):
+    for i in range(len(values)):
+        values[i] = str(values[i])
+        if len(values[i]) < length[i]:
+            values[i] = values[i] + ' ' * (length[i] - len(values[i]) - 1) + delim
+        else:
+            values[i] = values[i][0:length[i] - 1] + delim
+    return values
+
+
 def editcfg(file_name):
     lines = readcfg(file_name)
+    string = ''
+    print('Текущие значения ключей %s' % file_name, frame=True)
+    f_lines = {}
+    f_head = formatter(['Имя ключа', 'Значение', 'Комментарий'], [20, 25, 50], '┃')
+    for every in f_head:
+        string += every
+    print(string + '\n' + '━' * 19 + '╋' + '━' * 24 + '╋' + '━' * 49 + '┫')
+    for every in lines:
+        string = ''
+        f_lines[every] = formatter([every, lines[every]['value'], lines[every]['tip']], [20, 25, 50], '┃')
+        for every in f_lines[every]:
+            string += every
+        print(string + '\n' + '━' * 19 + '╋' + '━' * 24 + '╋' + '━' * 49 + '┫')
+    print('━' * 19 + '┻' + '━' * 24 + '┻' + '━' * 49 + '┛\n\n\n\n\n\n')
     print('Сейчас введите новые значения для ключей %s\nИли --- для того,чтобы оставить старое значение' % file_name)
     for every in lines:
-        enter = input('Введите значение %s : ' % every)
+        enter = input('Введите значение %s : ' % every, null=True)
         if enter != '---':
             lines[every] = enter
-    writecfg(file_name,lines)
-    print('Успешно перезаписано : %s !!!' % file_name,color = 1)
+    writecfg(file_name, lines, tips=tips)
+    print('Успешно перезаписано : %s !!!' % file_name, color=1)
+
+
+def bugreport(vers, soft):
+    print('Сейчас введите заголовок репорта,\nкоторый будет отражать всю суть ошибки.', frame=True)
+    header = inputer('\n--> ')
+    print('Кратко опишите возникающую проблему.', frame=True)
+    error = inputer('\n--> ')
+    print('Если известна строка, в которой возникает ошибка - напишите ее\n'
+          'В противном случае - напишите "---".', frame=True)
+    line = input('--> ', mask='1234567890-', color=4)
+    print('Оцените ошибку\n'
+          '1. Ошибка не важна\n'
+          '2. Ошибка никак не нарушает работу скрипта\n'
+          '3. Ошибка нарушает работу скрипта,но не крашит его\n'
+          '4. Ошибка крашит скрипт,не давая совершить действия', color=4, frame=True)
+    rate = input('--> ', color=4, mask='1234')
+    data = {
+        'head': header,
+        'error': error,
+        'line': line,
+        'rate': rate,
+        'version': vers,
+        'soft': soft
+    }
+    print(requests.post('https://hottabbe.000webhostapp.com/reporter.php', data, headers=head).text, clr=True)
